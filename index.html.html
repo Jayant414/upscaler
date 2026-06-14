@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro AI Texture Enhancer Engine</title>
+    
+    <script src="https://unpkg.com/mp4-muxer/build/mp4-muxer.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            background-color: #050508;
+            color: #e2e2e8;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-size: 26px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            background: linear-gradient(45deg, #f59e0b, #ef4444);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            color: #4b5563;
+            margin-bottom: 20px;
+            font-size: 13px;
+        }
+
+        .viewport-container {
+            position: relative;
+            border: 3px solid #1f1f2e;
+            border-radius: 8px;
+            overflow: hidden;
+            width: 960px;
+            height: 540px;
+            cursor: ew-resize;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.9);
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .controls-panel {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background-color: #0f0f15;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #1f1f2e;
+            width: 960px;
+            box-sizing: border-box;
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 25px;
+        }
+
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            flex: 1;
+        }
+
+        .slider-group label {
+            font-size: 11px;
+            color: #9ca3af;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .slider-group input[type="range"] {
+            width: 100%;
+            accent-color: #f59e0b;
+            background: #1f1f2e;
+            height: 6px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .btn-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn:hover { background-color: #1d4ed8; }
+        
+        .btn-gold { background-color: #d97706; }
+        .btn-gold:hover { background-color: #b45309; }
+
+        .btn-dark { background-color: #1e1e2f; color: #a5b4fc; border: 1px solid #4f46e5; }
+        .btn-dark:hover { background-color: #312e81; }
+
+        .btn-record { background-color: #10b981; }
+        .btn-record:hover { background-color: #059669; }
+        
+        .render-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(5, 5, 8, 0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .progress-bar {
+            width: 300px;
+            height: 10px;
+            background-color: #1f1f2e;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 15px;
+            border: 1px solid #374151;
+        }
+
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #f59e0b, #ef4444);
+        }
+
+        input[type="file"] { display: none; }
+        
+        .upload-label {
+            background-color: #1f1f2e;
+            border: 1px dashed #4b5563;
+            color: #9ca3af;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .upload-label:hover { border-color: #2563eb; color: #fff; }
+    </style>
+</head>
+<body>
+
+    <h1>Hyper-Detail Texture Enhancer Engine</h1>
+    <div class="subtitle">Optimized smooth live layout eliminates preview lag. Exports straight to a True MP4 format.</div>
+
+    <div class="viewport-container" id="viewport">
+        <canvas id="displayCanvas" width="480" height="270"></canvas>
+        <canvas id="exportCanvas" width="960" height="540" style="display:none;"></canvas>
+        <video id="hiddenVideo" loop crossorigin="anonymous" style="display:none;"></video>
+        
+        <div class="render-overlay" id="renderOverlay">
+            <h3 style="margin:0; color:#fff; font-size:18px;">PROCESSING TRUE MP4 EXPORT</h3>
+            <p style="margin:5px 0 0 0; color:#9ca3af; font-size:13px;" id="renderStatus">Initializing packaging components...</p>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls-panel">
+        <!-- Added the new Optical Glow Slider here -->
+        <div class="row" style="margin-bottom: 5px;">
+            <div class="slider-group">
+                <label id="textureLabel">Hyper Texture Pop: 2.5x</label>
+                <input type="range" id="textureSlider" min="0" max="6" step="0.1" value="2.5">
+            </div>
+            <div class="slider-group">
+                <label id="vibranceLabel">Local Contrast Bias: 1.3</label>
+                <input type="range" id="vibranceSlider" min="1" max="2" step="0.05" value="1.3">
+            </div>
+            <div class="slider-group">
+                <label id="glowLabel">Optical Glow Intensity: 60%</label>
+                <input type="range" id="glowSlider" min="0" max="100" step="1" value="60">
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="btn-container">
+                <label for="fileUpload" class="upload-label">📁 Load Video Clip</label>
+                <input type="file" id="fileUpload" accept="video/*">
+                <button class="btn" id="playBtn">Play</button>
+                <button class="btn btn-record" id="exportBtn">⚡ True High-Res Export</button>
+            </div>
+            <button class="btn btn-dark" id="ccToggleBtn">Color: DARK CC AE</button>
+        </div>
+    </div>
+
+<script>
+    const viewport = document.getElementById("viewport");
+    const video = document.getElementById("hiddenVideo");
+    const canvas = document.getElementById("displayCanvas");
+    const ctx = canvas.getContext("2d");
+    
+    const exportCanvas = document.getElementById("exportCanvas");
+    const eCtx = exportCanvas.getContext("2d");
+
+    const playBtn = document.getElementById("playBtn");
+    const exportBtn = document.getElementById("exportBtn");
+    const fileUpload = document.getElementById("fileUpload");
+    const ccToggleBtn = document.getElementById("ccToggleBtn");
+    
+    const textureSlider = document.getElementById("textureSlider");
+    const vibranceSlider = document.getElementById("vibranceSlider");
+    const glowSlider = document.getElementById("glowSlider");
+    
+    const renderOverlay = document.getElementById("renderOverlay");
+    const progressFill = document.getElementById("progressFill");
+    const renderStatus = document.getElementById("renderStatus");
+    
+    const textureLabel = document.getElementById("textureLabel");
+    const vibranceLabel = document.getElementById("vibranceLabel");
+    const glowLabel = document.getElementById("glowLabel");
+
+    let sliderX = 240; 
+    let ccMode = 2; // 0 = OFF, 1 = Cinematic Warmth, 2 = DARK CC AE
+    let isDragging = false;
+    let isExporting = false;
+
+    video.src = "https://assets.mixkit.co/videos/preview/mixkit-neon-light-from-a-tunnel-41865-large.mp4"; 
+    video.volume = 0;
+
+    textureSlider.oninput = () => textureLabel.textContent = `Hyper Texture Pop: ${textureSlider.value}x`;
+    vibranceSlider.oninput = () => vibranceLabel.textContent = `Local Contrast Bias: ${vibranceSlider.value}`;
+    glowSlider.oninput = () => glowLabel.textContent = `Optical Glow Intensity: ${glowSlider.value}%`;
+
+    function updateSliderPosition(clientX) {
+        if (isExporting) return;
+        const rect = viewport.getBoundingClientRect();
+        let posX = clientX - rect.left;
+        if (posX < 0) posX = 0;
+        if (posX > rect.width) posX = rect.width;
+        sliderX = (posX / rect.width) * canvas.width;
+    }
+
+    viewport.addEventListener("mousedown", (e) => { isDragging = true; updateSliderPosition(e.clientX); });
+    window.addEventListener("mouseup", () => isDragging = false);
+    viewport.addEventListener("mousemove", (e) => { if (isDragging) updateSliderPosition(e.clientX); });
+
+    fileUpload.addEventListener("change", function() {
+        const file = this.files[0];
+        if (file) {
+            video.src = URL.createObjectURL(file);
+            video.play();
+            playBtn.textContent = "Pause";
+        }
+    });
+
+    playBtn.addEventListener("click", () => {
+        if (isExporting) return;
+        if (video.paused) { video.play(); playBtn.textContent = "Pause"; }
+        else { video.pause(); playBtn.textContent = "Play"; }
+    });
+
+    ccToggleBtn.addEventListener("click", () => {
+        ccMode = (ccMode + 1) % 3;
+        if (ccMode === 0) {
+            ccToggleBtn.textContent = "Color: OFF (Raw)";
+            ccToggleBtn.className = "btn";
+        } else if (ccMode === 1) {
+            ccToggleBtn.textContent = "Color: Cinematic Warmth";
+            ccToggleBtn.className = "btn btn-gold";
+        } else {
+            ccToggleBtn.textContent = "Color: DARK CC AE";
+            ccToggleBtn.className = "btn btn-dark";
+        }
+    });
+
+    function applyContrastBias(val, bias) {
+        if (val > 128) return 128 + (val - 128) * bias;
+        return 128 - (128 - val) * bias;
+    }
+
+    function processFrameTextures(source, targetCtx, targetCanvas) {
+        targetCtx.drawImage(source, 0, 0, targetCanvas.width, targetCanvas.height);
+        
+        let w = targetCanvas.width;
+        let h = targetCanvas.height;
+        let imgData = targetCtx.getImageData(0, 0, w, h);
+        let pixels = imgData.data;
+
+        let outputBuffer = targetCtx.createImageData(w, h);
+        let outputPixels = outputBuffer.data;
+
+        let textureAmount = parseFloat(textureSlider.value);
+        let contrastBias = parseFloat(vibranceSlider.value);
+
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                let idx = (y * w + x) * 4;
+
+                if (x === 0 || x === w - 1 || y === 0 || y === h - 1) {
+                    outputPixels[idx] = pixels[idx];
+                    outputPixels[idx+1] = pixels[idx+1];
+                    outputPixels[idx+2] = pixels[idx+2];
+                    outputPixels[idx+3] = 255;
+                    continue;
+                }
+
+                let top = ((y - 1) * w + x) * 4;
+                let bottom = ((y + 1) * w + x) * 4;
+                let left = (y * w + (x - 1)) * 4;
+                let right = (y * w + (x + 1)) * 4;
+                let topLeft = ((y - 1) * w + (x - 1)) * 4;
+                let topRight = ((y - 1) * w + (x + 1)) * 4;
+                let bottomLeft = ((y + 1) * w + (x - 1)) * 4;
+                let bottomRight = ((y + 1) * w + (x + 1)) * 4;
+
+                let r = pixels[idx];
+                let g = pixels[idx+1];
+                let b = pixels[idx+2];
+
+                let sumR = pixels[top] + pixels[bottom] + pixels[left] + pixels[right] + pixels[topLeft] + pixels[topRight] + pixels[bottomLeft] + pixels[bottomRight];
+                let popR = r + ((r - (sumR / 8)) * textureAmount);
+                popR = applyContrastBias(popR, contrastBias);
+
+                let sumG = pixels[top+1] + pixels[bottom+1] + pixels[left+1] + pixels[right+1] + pixels[topLeft+1] + pixels[topRight+1] + pixels[bottomLeft+1] + pixels[bottomRight+1];
+                let popG = g + ((g - (sumG / 8)) * textureAmount);
+                popG = applyContrastBias(popG, contrastBias);
+
+                let sumB = pixels[top+2] + pixels[bottom+2] + pixels[left+2] + pixels[right+2] + pixels[topLeft+2] + pixels[topRight+2] + pixels[bottomLeft+2] + pixels[bottomRight+2];
+                let popB = b + ((b - (sumB / 8)) * textureAmount);
+                popB = applyContrastBias(popB, contrastBias);
+
+                if (ccMode === 1) { 
+                    popR *= 1.08; 
+                    popG *= 0.96; 
+                    popB *= 0.90; 
+                } else if (ccMode === 2) {
+                    let luma = 0.299 * popR + 0.587 * popG + 0.114 * popB;
+                    let saturation = 0.45; 
+                    popR = luma + saturation * (popR - luma);
+                    popG = luma + saturation * (popG - luma);
+                    popB = luma + saturation * (popB - luma);
+
+                    popR = Math.pow(popR / 255, 1.25) * 255;
+                    popG = Math.pow(popG / 255, 1.25) * 255;
+                    popB = Math.pow(popB / 255, 1.25) * 255;
+
+                    popR *= 0.85;
+                    popG *= 0.95;
+                    popB *= 1.15;
+                }
+
+                outputPixels[idx] = Math.min(255, Math.max(0, popR));
+                outputPixels[idx+1] = Math.min(255, Math.max(0, popG));
+                outputPixels[idx+2] = Math.min(255, Math.max(0, popB));
+                outputPixels[idx+3] = 255;
+            }
+        }
+        return outputBuffer;
+    }
+
+    // --- LIVE PREVIEW RENDERING LOOP ---
+    function processorLoop() {
+        if (!video.paused && !video.ended && !isExporting) {
+            let upscaledBuffer = processFrameTextures(video, ctx, canvas);
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Left Side: Upscaled + CC
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(0, 0, sliderX, canvas.height);
+            ctx.clip();
+            ctx.putImageData(upscaledBuffer, 0, 0);
+
+            // --- VARIABLE GLOW PASS (Tied to the new slider) ---
+            let glowIntensity = parseFloat(glowSlider.value) / 100;
+            if (glowIntensity > 0) {
+                ctx.globalCompositeOperation = "screen";
+                ctx.globalAlpha = glowIntensity; // Fades the glow in and out smoothly
+                ctx.filter = "contrast(1.5) brightness(0.8) blur(8px)";
+                ctx.drawImage(canvas, 0, 0); 
+                
+                // Reset alpha and blend mode for the next frame
+                ctx.globalAlpha = 1.0; 
+                ctx.globalCompositeOperation = "source-over"; 
+                ctx.filter = "none"; 
+            }
+
+            ctx.restore();
+
+            // Right Side: Raw Video
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(sliderX, 0, canvas.width - sliderX, canvas.height);
+            ctx.clip();
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            ctx.restore();
+
+            // Divider Bar
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(sliderX - 1, 0, 2, canvas.height);
+            ctx.beginPath();
+            ctx.arc(sliderX, canvas.height / 2, 6, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+        requestAnimationFrame(processorLoop);
+    }
+
+    // --- TRUE MP4 MUXING EXPORT PIPELINE ---
+    exportBtn.addEventListener("click", async () => {
+        if (isExporting) return;
+        
+        isExporting = true;
+        video.pause();
+        playBtn.textContent = "Play";
+        renderOverlay.style.display = "flex";
+        progressFill.style.width = "0%";
+        renderStatus.textContent = "Initializing True MP4 Container...";
+        
+        let totalFramesProcessed = 0;
+        
+        let muxer = new Mp4Muxer.Muxer({
+            target: new Mp4Muxer.ArrayBufferTarget(),
+            video: {
+                codec: 'avc',
+                width: 960,
+                height: 540
+            },
+            fastStart: 'in-memory' 
+        });
+
+        const encoder = new VideoEncoder({
+            output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+            error: (error) => {
+                console.error("Encoder Error:", error);
+                alert("Encoding pipeline dropped.");
+            }
+        });
+
+        encoder.configure({
+            codec: 'avc1.42001f', 
+            width: 960,
+            height: 540,
+            bitrate: 4000000, 
+            framerate: 30,
+            hardwareAcceleration: "prefer-software"
+        });
+
+        video.currentTime = 0;
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        const totalDuration = video.duration || 5; 
+        const timeStep = 1 / 30;
+        let currentRenderTime = 0;
+
+        try {
+            while (currentRenderTime < totalDuration) {
+                video.currentTime = currentRenderTime;
+                
+                await new Promise((resolve) => {
+                    const timeout = setTimeout(resolve, 100); 
+                    video.onseeked = () => {
+                        clearTimeout(timeout);
+                        resolve();
+                    };
+                });
+
+                let exportBuffer = processFrameTextures(video, eCtx, exportCanvas);
+                eCtx.putImageData(exportBuffer, 0, 0);
+
+                // --- VARIABLE GLOW PASS FOR THE EXPORT ---
+                let glowIntensity = parseFloat(glowSlider.value) / 100;
+                if (glowIntensity > 0) {
+                    eCtx.globalCompositeOperation = "screen";
+                    eCtx.globalAlpha = glowIntensity;
+                    eCtx.filter = "contrast(1.5) brightness(0.8) blur(16px)";
+                    eCtx.drawImage(exportCanvas, 0, 0);
+                    
+                    eCtx.globalAlpha = 1.0;
+                    eCtx.globalCompositeOperation = "source-over";
+                    eCtx.filter = "none";
+                }
+
+                const timestampMicroseconds = Math.round(currentRenderTime * 1000000);
+                const frame = new VideoFrame(exportCanvas, { timestamp: timestampMicroseconds });
+                
+                encoder.encode(frame, { keyFrame: totalFramesProcessed % 30 === 0 });
+                frame.close(); 
+
+                totalFramesProcessed++;
+                let progressPercent = (currentRenderTime / totalDuration) * 100;
+                progressFill.style.width = `${progressPercent}%`;
+                renderStatus.textContent = `Packaging True MP4 Frame: ${totalFramesProcessed} / ${Math.floor(totalDuration * 30)}`;
+
+                currentRenderTime += timeStep;
+            }
+
+            await encoder.flush();
+            encoder.close();
+            
+            muxer.finalize();
+
+            const blob = new Blob([muxer.target.buffer], { type: "video/mp4" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "HyperDetail_Upscaled_True.mp4";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+        } catch (err) {
+            console.error("Render Process Interrupted:", err);
+        } finally {
+            isExporting = false;
+            renderOverlay.style.display = "none";
+            video.play();
+            playBtn.textContent = "Pause";
+        }
+    });
+
+    video.addEventListener("play", processorLoop);
+</script>
+</body>
+</html>
